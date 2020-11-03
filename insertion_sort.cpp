@@ -1,4 +1,4 @@
-#include <tsal/tsal.hpp>
+#include <tsal.hpp>
 
 using namespace tsal;
 

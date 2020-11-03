@@ -1,4 +1,5 @@
-#include <tsal/tsal.hpp>
+#include <tsal.hpp>
+#include <omp.h>
 
 using namespace tsal;
 
@@ -107,6 +108,8 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
   const int IPF = 1;      // Iterations per frame
   const int maxNumber = 100000;
   int* numbers = new int[size];       // Array to store the data
+  double startTime;
+  startTime = omp_get_wtime();
   for (int i = 0; i < size; i++)
     numbers[i] = rand() % maxNumber;
 
@@ -157,6 +160,9 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
       }
     }
   }
+
+  std::cout << omp_get_wtime() - startTime;
+
   for (int i = 0; i < threads; ++i)
     delete sd[i];
   delete [] sd;
