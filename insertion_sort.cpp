@@ -1,4 +1,5 @@
 #include <tsal/tsal.hpp>
+#include <omp.h>
 
 using namespace tsal;
 
@@ -22,6 +23,8 @@ void insertionSort(ThreadSynth& synth, int size, int* data) {
 }
 
 int main() {
+  double startTime = omp_get_wtime();
+
   Mixer mixer;
   ThreadSynth synth(&mixer);
   mixer.add(synth);
@@ -35,5 +38,7 @@ int main() {
   }
   // Sort the data
   insertionSort(synth, size, data);
+
+  std::cout << "Time taken: " << omp_get_wtime() - startTime << " seconds" << std::endl;
 } 
 
