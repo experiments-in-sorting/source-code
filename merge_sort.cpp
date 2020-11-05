@@ -108,8 +108,6 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
   const int IPF = 1;      // Iterations per frame
   const int maxNumber = 100000;
   int* numbers = new int[size];       // Array to store the data
-  double startTime;
-  startTime = omp_get_wtime();
   for (int i = 0; i < size; i++)
     numbers[i] = rand() % maxNumber;
 
@@ -158,10 +156,9 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
           }
         } 
       }
+      if (state == S_WAIT) break;
     }
   }
-
-  std::cout << omp_get_wtime() - startTime;
 
   for (int i = 0; i < threads; ++i)
     delete sd[i];
@@ -184,6 +181,7 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
  * - When complete with job, mute the oscillator 
  */
 int main() {
+  double startTime = omp_get_wtime();
 
     Mixer mixer;
     ThreadSynth voice(&mixer);
@@ -191,4 +189,6 @@ int main() {
       voice.setVolume(0.5);
       voice.setEnvelopeActive(false);      
     mergeSortFunction(voice, 1, 1000);
+
+  std::cout << "Time taken: " << omp_get_wtime() - startTime << " seconds" << std::endl;
 }
