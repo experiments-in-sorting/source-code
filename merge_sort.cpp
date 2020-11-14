@@ -4,6 +4,11 @@
 using namespace tsal;
 
 #define MAX_VALUE 100000
+#define TEST true
+
+#if TEST
+#include <assert.h>
+#endif
 
 enum MergeState {
   S_MERGE = 1,
@@ -108,8 +113,21 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
   const int IPF = 1;      // Iterations per frame
   const int maxNumber = 100000;
   int* numbers = new int[size];       // Array to store the data
+  #if TEST
+  int* testArray = new int[size];
+  #endif
+
   for (int i = 0; i < size; i++)
+    #if TEST
+    {
+    int n = rand() % maxNumber;
+    numbers[i] = n;
+    testArray[i] = n;
+    }
+    #else
     numbers[i] = rand() % maxNumber;
+    #endif
+
 
   int bs = size / threads;
   int ex = size % threads;
@@ -160,6 +178,13 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
     }
   }
 
+  #if TEST
+  std::sort(testArray, testArray + size);
+  for (int i = 0; i < size; i++) {
+    assert(numbers[i] == testArray[i]);
+  }
+  #endif
+
   for (int i = 0; i < threads; ++i)
     delete sd[i];
   delete [] sd;
@@ -182,6 +207,7 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
  */
 int main() {
   double startTime = omp_get_wtime();
+  srand(1876);
 
     Mixer mixer;
     ThreadSynth voice(&mixer);

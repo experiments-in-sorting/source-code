@@ -23,6 +23,7 @@ void bubbleSort(ThreadSynth& synth, int size, int data[]) {
 
 int main() {
   double startTime = omp_get_wtime();
+  srand(1876);
 
   Mixer mixer;
   ThreadSynth synth(&mixer);
