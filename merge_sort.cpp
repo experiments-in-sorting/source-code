@@ -1,4 +1,4 @@
-#include <tsal/tsal.hpp>
+#include <tsal.hpp>
 #include <omp.h>
 
 using namespace tsal;
