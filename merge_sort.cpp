@@ -4,7 +4,7 @@
 using namespace tsal;
 
 #define MAX_VALUE 100000
-#define TEST true
+#define TEST false
 
 #if TEST
 #include <assert.h>
