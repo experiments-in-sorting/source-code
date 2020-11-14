@@ -1,5 +1,5 @@
 CC:= g++
-OBJS:= bubble_sort merge_sort selection_sort insertion_sort
+OBJS:= bubble_sort merge_sort quick_sort insertion_sort
 CXXFLAGS:= -Wall -g -fopenmp
 LDLIBS:= -ltsal
 
