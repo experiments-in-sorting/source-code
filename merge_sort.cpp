@@ -109,7 +109,7 @@ struct sortData {
  * \details Different colors represent different sections being sorted.
  * \details Once all items have been sorted and merged, the animation stops and all lines are colored white.
  */
-void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
+void mergeSortFunction(ThreadSynth& voice, int threads, int size, bool audio) {
   const int IPF = 1;      // Iterations per frame
   const int maxNumber = 100000;
   int* numbers = new int[size];       // Array to store the data
@@ -169,7 +169,7 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
           // If we are processing the item, play a sound
           if (i == sd[tid]->left) {
             MidiNote note = Util::scaleToNote<double>(number, std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
-            voice.play(note, Timing::MICROSECOND, 50);
+            if (audio) voice.play(note, Timing::MICROSECOND, 50);
             // voice.play(C2 + (tid * 3) + 60 * (number / maxNumber), Timing::MICROSECOND, 50);
           }
         } 
@@ -205,7 +205,14 @@ void mergeSortFunction(ThreadSynth& voice, int threads, int size) {
  * - Process an item in the merge step and set the oscillator pitch accordingly
  * - When complete with job, mute the oscillator 
  */
-int main() {
+int main(int argc, char** argv) {
+  bool audio = false;
+  if (argc > 1) {
+    if (std::string(argv[1]) == "-a") {
+      audio = true;
+    }
+  }
+
   double startTime = omp_get_wtime();
   srand(1876);
 
@@ -214,7 +221,7 @@ int main() {
       mixer.add(voice);
       voice.setVolume(0.5);
       voice.setEnvelopeActive(false);      
-    mergeSortFunction(voice, 1, 1000);
+    mergeSortFunction(voice, 1, 1000, audio);
 
   std::cout << "Time taken: " << omp_get_wtime() - startTime << " seconds" << std::endl;
 }
