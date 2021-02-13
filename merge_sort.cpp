@@ -177,7 +177,6 @@ void mergeSortFunction(tsgl::Canvas& can, ThreadSynth& voice, int threads, int s
       for (int i = 0; i < IPF; i++)
         sd[tid]->sortStep();
 
-      can.pauseDrawing();
 
       double number;
       tsgl::ColorFloat color;
@@ -198,16 +197,16 @@ void mergeSortFunction(tsgl::Canvas& can, ThreadSynth& voice, int threads, int s
                     else
                         color = tsgl::Colors::blend(sd[tid]->color, tsgl::BLACK, 0.5f);
             }
-            rectangles[i]->setHeight(number);
-            rectangles[i]->setColor(color);
-          }
-          can.resumeDrawing();
           // If we are processing the item, play a sound
           if (i == sd[tid]->left) {
             MidiNote note = Util::scaleToNote<double>(number, std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
-            if (audio) voice.play(note, Timing::MICROSECOND, 50);
-            // voice.play(C2 + (tid * 3) + 60 * (number / maxNumber), Timing::MICROSECOND, 50);
+            // if (audio) voice.play(note, Timing::MICROSECOND, 50);
+            voice.play(C2 + (tid * 3) + 60 * (number / maxNumber), Timing::MICROSECOND, 50);
           }
+            rectangles[i]->setHeight(number);
+            rectangles[i]->setColor(color);
+          }
+
         } 
       }
       if (state == S_WAIT) break;
