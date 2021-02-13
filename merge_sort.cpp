@@ -112,7 +112,7 @@ struct sortData {
  * \details Different colors represent different sections being sorted.
  * \details Once all items have been sorted and merged, the animation stops and all lines are colored white.
  */
-void mergeSortFunction(ThreadSynth& voice, tsgl::Canvas* can, int threads, int size, bool audio, bool graphics) {
+void mergeSortFunction(tsgl::Canvas& can, ThreadSynth& voice, int threads, int size, bool audio, bool graphics) {
   const int IPF = 1;      // Iterations per frame
   const int maxNumber = can.getWindowHeight();
   int* numbers = new int[size];       // Array to store the data
@@ -268,9 +268,10 @@ int main(int argc, char** argv) {
       mixer.add(voice);
       voice.setVolume(0.5);
       voice.setEnvelopeActive(false);      
-    tsgl::Canvas* c = new tsgl::Canvas(0, 0, w, h, "Bottom-up Merge Sort", tsgl::BLACK);
-    mergeSortFunction(voice, c, 1, s, audio, graphics);
+    tsgl::Canvas c(0, 0, w, h, "Bottom-up Merge Sort", tsgl::BLACK);
+    c.start();
+    mergeSortFunction(c, voice, 1, s, audio, graphics);
+    c.wait();
 
   std::cout << "Time taken: " << omp_get_wtime() - startTime << " seconds" << std::endl;
-  delete c;
 }
