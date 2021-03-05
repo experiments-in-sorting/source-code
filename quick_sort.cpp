@@ -1,85 +1,108 @@
-/* quick_sort.cpp
- *
- */
-
-#include <iostream>
-#include <vector>
 #include <cassert>
-#include <cstring>
 #include <omp.h>
+#include <iostream>
 #include <tsal.hpp>
+#include <tsgl.h>
 #include "sortUtilities.h"
-using namespace std;
 
+using namespace tsal;
 
-void split(vector<int>& data, int first, int last, int& pivotIndex, tsal::ThreadSynth& synth, bool enableAudio, int size) {
-  int pivot = data[first];
-  int saveFirst = first;
-  bool onCorrectSide;
-  ++first;
-  do {
-    onCorrectSide = true;
-    while (onCorrectSide) {              // Move first toward last.
-      if (data[first] > pivot) {
-        onCorrectSide = false;
-      } else {
-        ++first;
-        onCorrectSide = (first <= last);
+void quickSort(ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* can, std::vector<int> &data, int low, int high, bool audio, bool graphics) {
+  if (low < high) {
+    // Partition
+    int pivotValue = data[low];
+    int pivot = low;
+    for (int i = low + 1; i < high; i++) {
+      if (audio) {
+        MidiNote note = Util::scaleToNote(data[i], std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
+        synth.play(note, Timing::MICROSECOND, 50);
+      }
+      
+      
+      if (data[i] < pivotValue) {
+        pivot++;
+        std::swap(data[i], data[pivot]);
+        if (graphics) {
+          rectangles[i]->setHeight(data[i]);
+          rectangles[pivot]->setHeight(data[pivot]);
+        }
       }
     }
-    onCorrectSide = (first <= last);
-    while (onCorrectSide) {               // Move last toward first.
-      if (data[last] <= pivot) {
-        onCorrectSide = false;
-      } else {
-        --last;
-        onCorrectSide = (first <= last);
-      }
+    std::swap(data[low], data[pivot]);
+    if (graphics) {
+      if (!audio) can->sleepFor(0.005);
+      rectangles[low]->setHeight(data[low]);
+      rectangles[pivot]->setHeight(data[pivot]);
     }
-    if (first < last) {
-      swap(data[first], data[last]);
-      if (enableAudio) synth.play(tsal::C2 + 60 * (data[first] / size ) / 100, tsal::Timing::MICROSECOND, 75);
-      ++first;
-      --last;
-    }
-  } while (first <= last);
-
-  pivotIndex = last;
-  swap(data[saveFirst], data[pivotIndex]);
-}
-
-void quickSort(vector<int>& data, int first, int last, tsal::ThreadSynth& synth, bool enableAudio, int size) {
-  if (first < last) {
-    int pivotIndex;
-    split(data, first, last, pivotIndex, synth, enableAudio, size);
-    quickSort(data, first, pivotIndex-1, synth, enableAudio, size);
-    quickSort(data, pivotIndex+1, last, synth, enableAudio, size);
+    
+    quickSort(synth, rectangles, can, data, low, pivot, audio, graphics);
+    quickSort(synth, rectangles, can, data, pivot + 1, high, audio, graphics);
   }
 }
 
 int main(int argc, char** argv) {
-  bool audio = false;
-  if (argc > 1) {
-    if (std::string(argv[1]) == "-a") {
-      audio = true;
+  const int SIZE = 1000;
+  int arg;
+  
+  bool audio, graphics;
+  audio = false;
+  graphics = false;
+
+  while ((arg = getopt(argc, argv, "ag")) != -1) {
+    switch (arg) {
+      case 'a':
+        audio = true;
+        break;
+      case 'g':
+        graphics = true;
+        break;
+      default:
+        break;
     }
   }
-  tsal::Mixer mixer;
-  tsal::ThreadSynth voice(&mixer);
-  mixer.add(voice);
-  voice.setVolume(0.5);
-  voice.setEnvelopeActive(false);      
-  const int SIZE = 10000;
-  vector<int> data(SIZE);
+
+  std::cout << "graphics: " << graphics << std::endl
+    << "audio: " << audio << std::endl;
+
+  // tsal setup
+  Mixer mixer;
+  ThreadSynth synth(&mixer);
+  mixer.add(synth);
+  synth.setEnvelopeActive(false);
+
+  //tsgl setup
+  tsgl::Canvas* can;
+  int w = SIZE * 1.3;
+  int h = w/2;
+  if (graphics) {
+    can = new tsgl::Canvas(0, 0, w, h, "Quick Sort", tsgl::BLACK);
+    can->start();
+  }
+
+  // Generate data
+  std::vector<int> data(SIZE);
   initialize(data);
   assert( !sorted(data) );
 
+  // rectangles
+  tsgl::Rectangle** rectangles = new tsgl::Rectangle*[SIZE];
+  if (graphics) {
+    float start = -can->getWindowWidth() * .45;
+    float width = can->getWindowWidth() * .9 / SIZE;
+    for (int i = 0; i < SIZE; i++) {
+      rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
+      rectangles[i]->setIsOutlined(false);
+      can->add(rectangles[i]);
+    }
+  }
+  
+  // Sort the data
   double startTime = omp_get_wtime();
-  quickSort(data, 0, SIZE-1, voice, audio, SIZE);
-  // quickSort(data, 0, SIZE-1);
+  quickSort(synth, rectangles, can, data, 0, SIZE, audio, graphics);
   double stopTime = omp_get_wtime();
-
-  assert( sorted(data) );
   std::cout << "Time taken to sort " << SIZE << " items: "
             << stopTime - startTime << " seconds" << std::endl;
+  synth.stop();
+  if (graphics) can->wait();          
+
 }
