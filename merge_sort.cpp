@@ -1,233 +1,101 @@
 #include <tsal.hpp>
 #include <tsgl.h>
 #include <omp.h>
-
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include "sortUtilities.h"
+using namespace std;
 using namespace tsal;
 
-#define MAX_VALUE 100000
-#define TEST false
+#define SLEEP 0.00005
 
-#if TEST
-#include <assert.h>
-#endif
+void merge(vector<int>& data, int start, int mid, int end,
+    ThreadSynth& synth, bool audio,
+    tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool graphics) {
+  int start2 = mid + 1;
 
-enum MergeState {
-  S_MERGE = 1,
-  S_SHIFT = 2,
-  S_WAIT = 3,
-  S_DONE = 4,
-  S_HIDE = 5
-};
+  // If the direct merge is already sorted
+  if (data[mid] <= data[start2]) {
+      return;
+  }
 
-struct sortData {
-  tsgl::ColorFloat color;      // Color of the thread
-  MergeState state;            //Current state of the threads
-  int first, last,             //Start and end of our block
-    left, right,               //Indices of two numbers to compare
-    fi, hi, li,                //Indices of first middle and last numbers in a set
-    depth;                     //Current depth of the merge
-  int* a;                      //Array of numbers to sort
-  int seg, segs;               //Current / total segments
-  int size;
+  // Two pointers to maintain start
+  // of both arrays to merge
+  while (start <= mid && start2 <= end) {
 
-  sortData(int* arr, int f, int l, tsgl::ColorFloat c) {
-    fi = hi = li = 0;        //Initialize indices
-    left = right = 0;        //Initialize bounds
-    color = c;
-    a = arr;                 //Get a pointer to the array we'll be sorting
-    first = f;               //Set the first element we need to worry about
-    last = l;                //Set the last element we need to worry about
-    depth = 0;               //We start at depth 0
-    seg = 0; segs = 1;       //We start on segment -1, with a total of 1 segment
-    while(segs < (l-f)) {    //If the current number of segments is more than the # of elements, we're done
-      ++depth;               //Otherwise, increment the depth...
-      segs *= 2;             //...and double the number of segments
+      // If element 1 is in right place
+      if (data[start] <= data[start2]) {
+    if (audio) {
+             MidiNote note = Util::scaleToNote<double>(data[start],
+                         std::make_pair(0, MAX_VALUE),
+             std::make_pair(C3, C7));
+             synth.play(note, Timing::MICROSECOND, 50);
     }
-    state = S_SHIFT;         //Start Merging
-    size = 2;
-  }
+    if (graphics) {
+      rectangles[start]->setHeight(data[start]);
+      if (!audio) can->sleepFor(SLEEP);
+    }
+          ++start;
+      } else {
+    if (audio) {
+             MidiNote note = Util::scaleToNote<double>(data[start2],
+                         std::make_pair(0, MAX_VALUE),
+             std::make_pair(C3, C7));
+             synth.play(note, Timing::MICROSECOND, 50);
+    }
+    if (graphics) {
+      rectangles[start2]->setHeight(data[start2]);
+      if (!audio) can->sleepFor(SLEEP);
+    }
+          int value = data[start2];
+          int index = start2;
+          // Shift all the elements between element 1
+          // element 2, right by 1.
+          while (index != start) {
 
-  void restart(int l) {
-    depth = 0;
-    hi = last;
-    right = hi+1;
-    last = li = l;
-    fi = left = first;
-    state = S_MERGE;
-    size *= 2;
-  }
-
-  void sortStep() {
-    int tmp, pivot, jump;
-    switch(state) {
-      case S_SHIFT:
-        pivot = jump = segs/2;
-        fi = first; li = last;
-        hi = (fi + li) / 2;    //Set our half index to the median of our first and last
-        for (tmp = depth; tmp > 0; --tmp) {
-          jump /= 2;
-          if (seg < pivot) {
-            pivot -= jump;
-            li = hi;           //Set out last index to our old half index
-          } else {
-            pivot += jump;
-            fi = hi+1;         //Set out first index to our old half index plus one
+              if (audio) {
+                MidiNote note = Util::scaleToNote<double>(data[index],
+                         std::make_pair(0, MAX_VALUE),
+             std::make_pair(C3, C7));
+                synth.play(note, Timing::MICROSECOND, 50);
+              }
+              if (graphics) {
+                rectangles[index]->setHeight(data[index]);
+                if (!audio) can->sleepFor(SLEEP);
+              }
+       
+              data[index] = data[index - 1];
+              --index;
           }
-          hi = (fi + li) / 2;  //Set our new half index to the median of our first and last
-        }
-        left = fi; right = hi+1;
-        state = S_MERGE;           //We're ready to start Merging
-        break;
-      case S_MERGE:
-        if (left > right || right > last) {
-          seg = 0;                 //Reset our segment(s)
-          segs /= 2;               //We're now using half as many segments
-          state = (depth-- == 0) ? S_WAIT : S_SHIFT;
-        } else if (right > li) {
-          ++seg; state = S_SHIFT;  //Move on to the next segment and recalculate our first and last indices
-        } else if (left <= hi && a[left] < a[right]) {
-          ++left;
-        } else {
-          tmp = a[right];
-          for (int x = right; x > left; --x)
-            a[x] = a[x-1];
-          a[left] = tmp;
-          ++left; ++right; ++hi;
-        }
-        break;
-      default:
-        break;
-    }
-  }
-};
-
-
-
-/*!
- * \brief Visualization of the bottom-up mergesort algorithm.
- * \details Utilizes the sortData struct and sorts a number of items using the mergesort algorithm.
- * \details Uses lines to represent the items being sorted.
- * \details At the start, the items being sorted are all divided.
- * \details Once items have been sorted in one divided section, then sections are merged and the process repeats itself.
- * \details Different colors represent different sections being sorted.
- * \details Once all items have been sorted and merged, the animation stops and all lines are colored white.
- */
-void mergeSortFunction(tsgl::Canvas& can, ThreadSynth& voice, int threads, int size, bool audio, bool graphics) {
-  const int IPF = 1;      // Iterations per frame
-  const int maxNumber = can.getWindowHeight();
-  int* numbers = new int[size];       // Array to store the data
-  tsgl::Rectangle** rectangles = new tsgl::Rectangle*[size];
-
-  float start = -can.getWindowWidth() * .45;
-  float width = can.getWindowWidth() * .9 / size;
-
-  #if TEST
-  int* testArray = new int[size];
-  #endif
-
-  for (int i = 0; i < size; i++)
-    #if TEST
-    {
-    int n = rand() % maxNumber;
-    numbers[i] = n;
-    testArray[i] = n;
-    }
-    #else
-    numbers[i] = rand() % maxNumber;
-    #endif
-
-  if (graphics) {
-    for (int i = 0; i < size; i++) {
-    rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, numbers[i], 0, 0, 0, tsgl::RED);
-    rectangles[i]->setIsOutlined(false);
-    can.add(rectangles[i]);
-    }
-  }
-
-  int bs = size / threads;
-  int ex = size % threads;
-  sortData** sd = new sortData*[1];
-  int f = 0;
-  int l = (ex == 0) ? bs-1 : bs;
-  for (int i = 0; i < threads; ++i) {
-    sd[i] = new sortData(numbers,f,l,tsgl::Colors::highContrastColor(i));
-    f = l+1;
-    if (i < ex-1) l += (bs + 1);
-    else          l += bs;
-  }
-  {
-    //std::cout << tid << std::endl;
-    while (true) {
-      int tid = 0;
-      can.sleep();
-      if (sd[tid]->state == S_WAIT) {  //Merge waiting threads
-        voice.stop();
-
-        if ((tid % sd[tid]->size) > 0) {
-          sd[tid]->state = S_DONE;
-        } else {
-          int next = tid+sd[tid]->size/2;
-          if (next < threads && sd[next]->state == S_DONE) {
-            sd[next]->state = S_HIDE;
-            
-            sd[tid]->restart(sd[next]->last);
-          }
-        }
-      }
-      for (int i = 0; i < IPF; i++)
-        sd[tid]->sortStep();
-
-
-      double number;
-      tsgl::ColorFloat color;
-      MergeState state = sd[tid]->state;
-      if (state != S_HIDE && state != S_DONE) {
-        for (int i = sd[tid]->first; i < sd[tid]->last; ++i) {
-          number = numbers[i];
+          data[start] = value;
           if (graphics) {
-            if (state == S_WAIT || state == S_DONE) {
-              color = tsgl::WHITE;
-            } else {
-                if (i == sd[tid]->right || i == sd[tid]->left)
-                        color = tsgl::WHITE;
-                    else if (i < sd[tid]->left)
-                        color = sd[tid]->color;
-                    else if (i >= sd[tid]->fi && i <= sd[tid]->li)
-                        color = tsgl::Colors::blend(sd[tid]->color, tsgl::WHITE, 0.5f);
-                    else
-                        color = tsgl::Colors::blend(sd[tid]->color, tsgl::BLACK, 0.5f);
-            }
-          // If we are processing the item, play a sound
-          if (i == sd[tid]->left) {
-            MidiNote note = Util::scaleToNote<double>(number, std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
-            // if (audio) voice.play(note, Timing::MICROSECOND, 50);
-            voice.play(C2 + (tid * 3) + 60 * (number / maxNumber), Timing::MICROSECOND, 50);
-          }
-            rectangles[i]->setHeight(number);
-            rectangles[i]->setColor(color);
+            rectangles[start]->setHeight(value);
           }
 
-        } 
-      }
-      if (state == S_WAIT) break;
+          // Update all the pointers
+          ++start;
+          ++mid;
+          ++start2;
+        }
     }
-  }
+}
 
-  #if TEST
-  std::sort(testArray, testArray + size);
-  for (int i = 0; i < size; i++) {
-    assert(numbers[i] == testArray[i]);
-  }
-  #endif
-
-  for (int i = 0; i < threads; ++i)
-    delete sd[i];
-  delete [] sd;
-  delete [] numbers;
-  for (int i = 0; i < size; i++) {
-    delete rectangles[i];
-  }
-  delete [] rectangles;
+void mergeSort(vector<int>& data, int lo, int hi,
+    ThreadSynth& synth, bool audio,
+    tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool graphics) {
+  if(lo < hi) {
+     int mid = lo + (hi - lo) / 2;
+     if (audio) {
+        MidiNote note = Util::scaleToNote<double>(mid,
+                                     std::make_pair(0, data.size()),
+                                     std::make_pair(C3, C7));
+        synth.play(note, Timing::MICROSECOND, 50);
+     }
+     mergeSort(data, lo, mid, synth, audio, rectangles, can, graphics);
+     mergeSort(data, mid+1, hi, synth, audio, rectangles, can, graphics);
+     merge(data, lo, mid, hi, synth, audio, rectangles, can, graphics);
+   } 
 }
 
 /** @example merge_sort.cpp
@@ -245,32 +113,69 @@ void mergeSortFunction(tsgl::Canvas& can, ThreadSynth& voice, int threads, int s
  * - When complete with job, mute the oscillator 
  */
 int main(int argc, char** argv) {
-  bool audio = false;
-  bool graphics = true;
-  if (argc > 1) {
-    if (std::string(argv[1]) == "-a") {
-      audio = true;
+  const int SIZE = 1000;
+
+  bool audio, graphics;
+  audio = false;
+  graphics = false;
+  int arg;
+
+  while ((arg = getopt(argc, argv, "ag")) != -1) {
+    switch (arg) {
+      case 'a':
+        audio = true;
+        break;
+      case 'g':
+        graphics = true;
+        break;
+      default:
+        break;
     }
   }
-  // int s = (argc > 1) ? atoi(argv[1]) : 1024;
-  int s = 1000;
-  if (s < 10) s = 10;
-  int w = s * 1.3;
+
+  // tsal setup
+  Mixer mixer;
+  ThreadSynth synth(&mixer);
+  mixer.add(synth);
+  synth.setVolume(0.5);
+  synth.setEnvelopeActive(false);      
+  
+  // tsgl setup
+  tsgl::Canvas* can;
+  int w = SIZE * 1.3;
   int h = w/2;
+  if (graphics) {
+    can = new tsgl::Canvas(0, 0, w, h, "Merge Sort", tsgl::BLACK);
+    can->start();
+  }
 
+  // Generate data
+  std::vector<int> data(SIZE);
+  initialize(data);
+  assert( !sorted(data) );
 
+  // rectangles
+  tsgl::Rectangle** rectangles = new tsgl::Rectangle*[SIZE];
+  if (graphics) {
+    float start = -can->getWindowWidth() * .45;
+    float width = can->getWindowWidth() * .9 / SIZE;
+    for (int i = 0; i < SIZE; i++) {
+      rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
+      rectangles[i]->setIsOutlined(false);
+      can->add(rectangles[i]);
+    }
+  }
+  
+  // sort data
   double startTime = omp_get_wtime();
-  srand(1876);
+  mergeSort(data, 0, SIZE-1, synth, audio, rectangles, can, graphics);
+  double stopTime = omp_get_wtime();
 
-    Mixer mixer;
-    ThreadSynth voice(&mixer);
-      mixer.add(voice);
-      voice.setVolume(0.5);
-      voice.setEnvelopeActive(false);      
-    tsgl::Canvas c(0, 0, w, h, "Bottom-up Merge Sort", tsgl::BLACK);
-    c.start();
-    mergeSortFunction(c, voice, 1, s, audio, graphics);
-    c.wait();
+  assert( sorted(data) );
+  std::cout << "Time taken to sort " << SIZE << " items: "
+            << stopTime - startTime << " seconds" << std::endl;
 
-  std::cout << "Time taken: " << omp_get_wtime() - startTime << " seconds" << std::endl;
+  synth.stop();
+  if (graphics) can->wait();
 }
+
