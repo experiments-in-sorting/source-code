@@ -5,7 +5,7 @@
 #include <vector>
 using namespace std;
 
-#define MAX_VALUE 1000
+#define MAX_VALUE 601
 
 bool sorted(const vector<int>& data) {
    for (unsigned i = 1; i < data.size(); ++i) {

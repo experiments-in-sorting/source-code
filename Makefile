@@ -15,7 +15,7 @@ UNAME    := $(shell uname)
 _DEPS = \
 
 # Main source file
-TARGET = merge_sort
+TARGET = insertion_sort
 
 # Object files
 ODIR = obj
