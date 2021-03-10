@@ -15,7 +15,7 @@ UNAME    := $(shell uname)
 _DEPS = \
 
 # Main source file
-TARGET = insertion_sort
+TARGET = bubble_sort
 
 # Object files
 ODIR = obj

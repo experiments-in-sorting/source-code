@@ -8,7 +8,7 @@
         "name": "(gdb) Launch",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/merge_sort",
+        "program": "${workspaceFolder}/bubble_sort",
         "args": [],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
