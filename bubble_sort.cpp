@@ -8,32 +8,37 @@
 #include "sortUtilities.h"
 using namespace tsal;
 
-void bubbleSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rectangles, bool audio, bool graphics) {
-  int temp;
+void bubbleSort(vector<int>& data, ThreadSynth& synth,
+		tsgl::Rectangle** rectangles, bool audio, bool graphics) {
   const int size = data.size();
-  for (int i = 0; i < size; i++) {
-    for (int j = size - 1; j > i; j--) {
-      MidiNote note = Util::scaleToNote(data[j], std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
-      if (audio) synth.play(note, Timing::MICROSECOND, 50);
-              if (graphics)
-        {
-          rectangles[j]->setHeight(data[j-1]);
-          rectangles[j-1]->setHeight(temp);
-        }
+  int end = size;
+  for (int i = 0; i < size; ++i) {
+    for (int j = 1; j < end; ++j) {
+      if (audio) {
+        MidiNote note = Util::scaleToNote(data[j],
+					std::make_pair(0, MAX_VALUE),
+					std::make_pair(C3, C7));
+        synth.play(note, Timing::MICROSECOND, 50);
+      }
       
-      if (data[j] < data[j - 1]) {
-        temp = data[j];
-        data[j] = data[j - 1];
-        data[j - 1] = temp;
+      if (data[j] < data[j-1]) {
+        int temp = data[j];
+        data[j] = data[j-1];
+        data[j-1] = temp;
+      }
 
+      if (graphics) {
+        rectangles[j]->setHeight(data[j]);
+        rectangles[j-1]->setHeight(data[j-1]);
       }
     }
+    --end;
   }
 }
 
 int main(int argc, char** argv) {
-  bool graphics = true;
-  bool audio = true;
+  bool graphics = false;
+  bool audio = false;
   int opt;
 
   while ((opt = getopt(argc, argv, "ag")) != -1) {
@@ -71,15 +76,27 @@ int main(int argc, char** argv) {
   }
 
   // rectangles
-  tsgl::Rectangle** rectangles = new tsgl::Rectangle*[size];
+  tsgl::Rectangle** rectangles = nullptr;
   if (graphics) {
+    rectangles = new tsgl::Rectangle*[size];
     float start = -can->getWindowWidth() * .45;
     float width = can->getWindowWidth() * .9 / size;
-    for (int i = 0; i < size; i++) {
-      rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
-      rectangles[i]->setIsOutlined(false);
+    for (int i = 0; i < data.size(); i++) {
+      rectangles[i] = new tsgl::Rectangle(roundf(start + i * width), 0, 0, 
+		      			width, data[i], 0, 0, 0, tsgl::RED);
+      rectangles[i]->setIsOutlined(true);
+      rectangles[i]->setOutlineColor(tsgl::RED);
       can->add(rectangles[i]);
     }
+
+    /*
+  for (int i = 0; i < data.size(); ++i) {
+	  std::cout << "data[" << i << "]: " << data[i]
+		 << ", rect[" << i << "]: "  
+		  << rectangles[i]->getWidth()  
+		  << std::endl;
+  }
+*/
   }
   
   
@@ -88,10 +105,19 @@ int main(int argc, char** argv) {
   double startTime = omp_get_wtime();
   bubbleSort(data, synth, rectangles, audio, graphics);
   double stopTime = omp_get_wtime();
-
+/*
+  for (int i = 0; i < data.size(); ++i) {
+	  std::cout << "data[" << i << "]: " << data[i]
+		 << ", rect[" << i << "]: "  
+		  << rectangles[i]->getWidth()  
+		  << std::endl;
+  }
+  */
   assert( sorted(data) );
   std::cout << "Time taken to sort " << size << " items: "
             << stopTime - startTime << " seconds" << std::endl;
   synth.stop();
-  can->wait();
+  if (graphics) {
+	can->wait();
+  }
 }
