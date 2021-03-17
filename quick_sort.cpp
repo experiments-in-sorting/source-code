@@ -23,6 +23,7 @@ void quickSort(ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* c
         pivot++;
         std::swap(data[i], data[pivot]);
         if (graphics) {
+          if (!audio) can->sleepFor(GRAPHIC_WAIT);
           rectangles[i]->setHeight(data[i]);
           rectangles[pivot]->setHeight(data[pivot]);
         }
@@ -30,7 +31,7 @@ void quickSort(ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* c
     }
     std::swap(data[low], data[pivot]);
     if (graphics) {
-      if (!audio) can->sleepFor(0.005);
+      if (!audio) can->sleepFor(GRAPHIC_WAIT);
       rectangles[low]->setHeight(data[low]);
       rectangles[pivot]->setHeight(data[pivot]);
     }
@@ -90,8 +91,9 @@ int main(int argc, char** argv) {
     float start = -can->getWindowWidth() * .45;
     float width = can->getWindowWidth() * .9 / SIZE;
     for (int i = 0; i < SIZE; i++) {
-      rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
-      rectangles[i]->setIsOutlined(false);
+      rectangles[i] = new tsgl::Rectangle(roundf(start + i * width), 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
+      rectangles[i]->setIsOutlined(true);
+      rectangles[i]->setOutlineColor(tsgl::RED);
       can->add(rectangles[i]);
     }
   }
