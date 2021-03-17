@@ -8,8 +8,6 @@
 using namespace std;
 using namespace tsal;
 
-#define SLEEP 0.00005
-
 void merge(vector<int>& data, int start, int mid, int end,
     ThreadSynth& synth, bool audio,
     tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool graphics) {
@@ -34,7 +32,7 @@ void merge(vector<int>& data, int start, int mid, int end,
     }
     if (graphics) {
       rectangles[start]->setHeight(data[start]);
-      if (!audio) can->sleepFor(SLEEP);
+      if (!audio) can->sleepFor(GRAPHIC_WAIT);
     }
           ++start;
       } else {
@@ -46,7 +44,7 @@ void merge(vector<int>& data, int start, int mid, int end,
     }
     if (graphics) {
       rectangles[start2]->setHeight(data[start2]);
-      if (!audio) can->sleepFor(SLEEP);
+      if (!audio) can->sleepFor(GRAPHIC_WAIT);
     }
           int value = data[start2];
           int index = start2;
@@ -62,7 +60,7 @@ void merge(vector<int>& data, int start, int mid, int end,
               }
               if (graphics) {
                 rectangles[index]->setHeight(data[index]);
-                if (!audio) can->sleepFor(SLEEP);
+                if (!audio) can->sleepFor(GRAPHIC_WAIT);
               }
        
               data[index] = data[index - 1];
@@ -160,8 +158,9 @@ int main(int argc, char** argv) {
     float start = -can->getWindowWidth() * .45;
     float width = can->getWindowWidth() * .9 / SIZE;
     for (int i = 0; i < SIZE; i++) {
-      rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
-      rectangles[i]->setIsOutlined(false);
+      rectangles[i] = new tsgl::Rectangle(roundf(start + i * width), 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
+      rectangles[i]->setIsOutlined(true);
+      rectangles[i]->setOutlineColor(tsgl::RED);
       can->add(rectangles[i]);
     }
   }

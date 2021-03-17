@@ -9,7 +9,7 @@
 using namespace tsal;
 
 void bubbleSort(vector<int>& data, ThreadSynth& synth,
-		tsgl::Rectangle** rectangles, bool audio, bool graphics) {
+		tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool audio, bool graphics) {
   const int size = data.size();
   int end = size;
   for (int i = 0; i < size; ++i) {
@@ -28,6 +28,7 @@ void bubbleSort(vector<int>& data, ThreadSynth& synth,
       }
 
       if (graphics) {
+        if (!audio) can->sleepFor(GRAPHIC_WAIT);
         rectangles[j]->setHeight(data[j]);
         rectangles[j-1]->setHeight(data[j-1]);
       }
@@ -103,7 +104,7 @@ int main(int argc, char** argv) {
 
   // Sort the data
   double startTime = omp_get_wtime();
-  bubbleSort(data, synth, rectangles, audio, graphics);
+  bubbleSort(data, synth, rectangles, can, audio, graphics);
   double stopTime = omp_get_wtime();
 /*
   for (int i = 0; i < data.size(); ++i) {

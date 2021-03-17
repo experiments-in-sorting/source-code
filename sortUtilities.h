@@ -6,7 +6,7 @@
 using namespace std;
 
 #define MAX_VALUE 601
-#define GRAPHIC_WAIT 0.005
+#define GRAPHIC_WAIT 0.00005
 
 bool sorted(const vector<int>& data) {
    for (unsigned i = 1; i < data.size(); ++i) {

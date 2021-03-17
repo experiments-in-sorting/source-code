@@ -13,7 +13,7 @@
 using namespace tsal;
 
 
-void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rectangles, bool audio, bool graphics) {
+void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool audio, bool graphics) {
   const int SIZE = data.size();
   for (int i = 1; i < SIZE; ++i) {
     int insertValue = data[i];
@@ -25,8 +25,10 @@ void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rect
        synth.play(note, Timing::MICROSECOND, 50);
     }
     
-    if (graphics)
+    if (graphics) {
+      if (!audio) can->sleepFor(GRAPHIC_WAIT);
       rectangles[i]->setHeight(data[i]);
+    }
     while (j > 0 && data[j-1] > insertValue) {
 
 
@@ -38,8 +40,10 @@ void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rect
                                             std::make_pair(C3, C7));
          synth.play(note, Timing::MICROSECOND, 50);
       }
-      if (graphics)
+      if (graphics) {
+        if (!audio) can->sleepFor(GRAPHIC_WAIT);
         rectangles[j]->setHeight(data[j]);
+      }
     }
     data[j] = insertValue;
   }
@@ -90,15 +94,16 @@ int main(int argc, char** argv) {
     float start = -can->getWindowWidth() * .45;
     float width = can->getWindowWidth() * .9 / SIZE;
     for (int i = 0; i < SIZE; i++) {
-      rectangles[i] = new tsgl::Rectangle(start + i * width, 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
-      rectangles[i]->setIsOutlined(false);
+      rectangles[i] = new tsgl::Rectangle(roundf(start + i * width), 0, 0, width, data[i], 0, 0, 0, tsgl::RED);
+      rectangles[i]->setIsOutlined(true);
+      rectangles[i]->setOutlineColor(tsgl::RED);
       can->add(rectangles[i]);
     }
   }
 
   // Sort the data
   double startTime = omp_get_wtime();
-  insertionSort(data, synth, rectangles, audio, graphics);
+  insertionSort(data, synth, rectangles, can, audio, graphics);
   double stopTime = omp_get_wtime();
 
   assert( sorted(data) );
