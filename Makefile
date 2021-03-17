@@ -12,10 +12,13 @@ DIR := $(notdir $(patsubst %/,%,$(dir $(MKFILE_PATH))))
 UNAME    := $(shell uname)
 
 # Dependencies
-_DEPS = \
+_DEPS = sortUtilities.h \
 
 # Main source file
-TARGET = bubble_sort
+# TARGET = bubble_sort
+# TARGET = insertion_sort
+# TARGET = merge_sort
+TARGET = quick_sort
 
 # Object files
 ODIR = obj
