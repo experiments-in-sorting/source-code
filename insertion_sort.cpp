@@ -15,7 +15,7 @@ using namespace tsal;
 
 void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool audio, bool graphics) {
   const int SIZE = data.size();
-  for (int i = 1; i < SIZE; ++i) {
+  for (int i = 1; i <= SIZE; ++i) {
     int insertValue = data[i];
     int j = i;
     if (audio) {
@@ -42,10 +42,18 @@ void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rect
       }
       if (graphics) {
         if (!audio) can->sleepFor(GRAPHIC_WAIT);
-        rectangles[j]->setHeight(data[j]);
+        rectangles[j]->setHeight(data[j-1]);
       }
     }
     data[j] = insertValue;
+    if (audio) {
+      MidiNote note = Util::scaleToNote(insertValue, std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
+      synth.play(note, Timing::MICROSECOND, 50);
+    }
+    if (graphics) {
+      if (!audio) can->sleepFor(GRAPHIC_WAIT);
+      rectangles[j]->setHeight(insertValue);
+    }
   }
 }
 
