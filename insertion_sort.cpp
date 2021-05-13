@@ -14,7 +14,6 @@ using namespace tsal;
 
 
 void insertionSort(vector<int>& data, ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* can, bool audio, bool graphics) {
-  const int SIZE = data.size();
   for (int i = 1; i <= SIZE; ++i) {
     int insertValue = data[i];
     int j = i;
@@ -76,15 +75,14 @@ int main(int argc, char** argv) {
   }
 
   // Generate data
-  const int SIZE = 1000; 
   vector<int> data(SIZE);
   initialize(data);
   assert( !sorted(data) );
 
   //tsgl setup
   tsgl::Canvas* can;
-  int w = SIZE * 1.3;
-  int h = w/2;
+  int w = SIZE;
+  int h = MAX_VALUE * 1.2;
   if (graphics) {
     can = new tsgl::Canvas(0, 0, w, h, "Insertion Sort", tsgl::BLACK);
     can->start();

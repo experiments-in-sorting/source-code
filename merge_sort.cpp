@@ -56,11 +56,11 @@ void merge(vector<int>& data, int start, int mid, int end,
                 MidiNote note = Util::scaleToNote<double>(data[index],
                          std::make_pair(0, MAX_VALUE),
              std::make_pair(C3, C7));
-                synth.play(note, Timing::MICROSECOND, 50);
+                synth.play(note, Timing::MICROSECOND, 0);
               }
               if (graphics) {
                 rectangles[index]->setHeight(data[index]);
-                if (!audio) can->sleepFor(GRAPHIC_WAIT);
+                if (!audio) can->sleepFor(GRAPHIC_WAIT / 5000000);
               }
        
               data[index] = data[index - 1];
@@ -85,7 +85,7 @@ void mergeSort(vector<int>& data, int lo, int hi,
   if(lo < hi) {
      int mid = lo + (hi - lo) / 2;
      if (audio) {
-        MidiNote note = Util::scaleToNote<double>(mid,
+        MidiNote note = Util::scaleToNote<double>(data[mid],
                                      std::make_pair(0, data.size()),
                                      std::make_pair(C3, C7));
         synth.play(note, Timing::MICROSECOND, 50);
@@ -111,8 +111,6 @@ void mergeSort(vector<int>& data, int lo, int hi,
  * - When complete with job, mute the oscillator 
  */
 int main(int argc, char** argv) {
-  const int SIZE = 1000;
-
   bool audio, graphics;
   audio = false;
   graphics = false;
@@ -140,8 +138,8 @@ int main(int argc, char** argv) {
   
   // tsgl setup
   tsgl::Canvas* can;
-  int w = SIZE * 1.3;
-  int h = w/2;
+  int w = SIZE;
+  int h = MAX_VALUE * 1.2;
   if (graphics) {
     can = new tsgl::Canvas(0, 0, w, h, "Merge Sort", tsgl::BLACK);
     can->start();

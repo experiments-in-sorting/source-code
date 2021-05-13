@@ -62,15 +62,14 @@ int main(int argc, char** argv) {
   synth.setEnvelopeActive(false);
   
   // Generate data
-  const int size = 1000; 
-  vector<int> data(size);
+  vector<int> data(SIZE);
   initialize(data);
   assert( !sorted(data) );
 
   //tsgl setup
   tsgl::Canvas* can;
-  int w = size * 1.3;
-  int h = w/2;
+  int w = SIZE;
+  int h = MAX_VALUE * 1.2;
   if (graphics) {
     can = new tsgl::Canvas(0, 0, w, h, "Bubble Sort", tsgl::BLACK);
     can->start();
@@ -79,9 +78,9 @@ int main(int argc, char** argv) {
   // rectangles
   tsgl::Rectangle** rectangles = nullptr;
   if (graphics) {
-    rectangles = new tsgl::Rectangle*[size];
+    rectangles = new tsgl::Rectangle*[SIZE];
     float start = -can->getWindowWidth() * .45;
-    float width = can->getWindowWidth() * .9 / size;
+    float width = can->getWindowWidth() * .9 / SIZE;
     for (int i = 0; i < data.size(); i++) {
       rectangles[i] = new tsgl::Rectangle(roundf(start + i * width), 0, 0, 
 		      			width, data[i], 0, 0, 0, tsgl::RED);
@@ -89,15 +88,6 @@ int main(int argc, char** argv) {
       rectangles[i]->setOutlineColor(tsgl::RED);
       can->add(rectangles[i]);
     }
-
-    /*
-  for (int i = 0; i < data.size(); ++i) {
-	  std::cout << "data[" << i << "]: " << data[i]
-		 << ", rect[" << i << "]: "  
-		  << rectangles[i]->getWidth()  
-		  << std::endl;
-  }
-*/
   }
   
   
@@ -106,19 +96,13 @@ int main(int argc, char** argv) {
   double startTime = omp_get_wtime();
   bubbleSort(data, synth, rectangles, can, audio, graphics);
   double stopTime = omp_get_wtime();
-/*
-  for (int i = 0; i < data.size(); ++i) {
-	  std::cout << "data[" << i << "]: " << data[i]
-		 << ", rect[" << i << "]: "  
-		  << rectangles[i]->getWidth()  
-		  << std::endl;
-  }
-  */
-  assert( sorted(data) );
-  std::cout << "Time taken to sort " << size << " items: "
+
+  std::cout << "Time taken to sort " << SIZE << " items: "
             << stopTime - startTime << " seconds" << std::endl;
+
+  assert( sorted(data) );
   synth.stop();
   if (graphics) {
-	can->wait();
+    can->wait();
   }
 }

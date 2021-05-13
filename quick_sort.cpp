@@ -15,7 +15,7 @@ void quickSort(ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* c
     for (int i = low + 1; i < high; i++) {
       if (audio) {
         MidiNote note = Util::scaleToNote(data[i], std::make_pair(0, MAX_VALUE), std::make_pair(C3, C7));
-        synth.play(note, Timing::MICROSECOND, 50);
+        synth.play(note, Timing::MICROSECOND, 40);
       }
       
       
@@ -42,7 +42,6 @@ void quickSort(ThreadSynth& synth, tsgl::Rectangle** rectangles, tsgl::Canvas* c
 }
 
 int main(int argc, char** argv) {
-  const int SIZE = 1000;
   int arg;
   
   bool audio, graphics;
@@ -62,9 +61,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  std::cout << "graphics: " << graphics << std::endl
-    << "audio: " << audio << std::endl;
-
   // tsal setup
   Mixer mixer;
   ThreadSynth synth(&mixer);
@@ -73,8 +69,8 @@ int main(int argc, char** argv) {
 
   //tsgl setup
   tsgl::Canvas* can;
-  int w = SIZE * 1.3;
-  int h = w/2;
+  int w = SIZE;
+  int h = MAX_VALUE * 1.2;
   if (graphics) {
     can = new tsgl::Canvas(0, 0, w, h, "Quick Sort", tsgl::BLACK);
     can->start();
